@@ -1,0 +1,111 @@
+package Function;
+import Bean.DB;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+@WebServlet(name = "SearchCommodity", urlPatterns = "/SearchCommodity")
+public class SearchCommodity extends HttpServlet {
+    private static final long serialVersionUID = 1L;
+
+    /**
+     * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse
+     *   response)
+     */
+    protected void doGet(HttpServletRequest request,
+                         HttpServletResponse response) throws ServletException, IOException {
+        request.setCharacterEncoding("UTF-8");
+        try {
+            // 加载数据库驱动，注册到驱动管理器
+            Class.forName(DB.driver);
+            Connection conn = DriverManager.getConnection(DB.url, DB.user,
+                    DB.password);
+            // 添加图书信息的SQL语句
+            String sql="";
+            String action=request.getParameter("action");
+            String name=request.getParameter("name");
+
+            if(action.equals("ambiguous")){
+                sql = "select * from commodity where Name like '" + name + "%'" ;
+                System.out.println("-----"+sql);
+            }
+            else if (action.equals("all")) sql="select * from commodity";
+            else {
+                response.getWriter().print("{'status':'error'}");
+                response.getWriter().flush();
+                response.getWriter().close();
+            }
+            // 获取Statement
+            Statement statement = conn.createStatement();
+
+            ResultSet resultSet = statement.executeQuery(sql);
+
+            List list = new ArrayList();
+            while (resultSet.next()) {
+
+                Map map = new HashMap();
+                map.put("cid",resultSet.getString("cid"));
+                map.put("name",resultSet.getString("name"));
+                map.put("category",resultSet.getString("category"));
+                map.put("num",resultSet.getInt("num"));
+                map.put("price",resultSet.getInt("price"));
+                map.put("src",resultSet.getString("src"));
+                list.add(map);
+
+            }
+            //获取完毕
+
+            //构造返回json
+            JSONObject jsonObject = new JSONObject();
+            response.setContentType("text/html; charset=UTF-8");
+            try {
+                jsonObject.put("status","success");
+                jsonObject.put("value",list);
+
+                response.getWriter().print(jsonObject);
+                response.getWriter().flush();
+                response.getWriter().close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }catch (JSONException e){
+                e.printStackTrace();
+            }
+
+            resultSet.close();
+            statement.close();
+            conn.close();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+
+
+    }
+
+    /**
+     * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse
+     *   response)
+     */
+    protected void doPost(HttpServletRequest request,
+                          HttpServletResponse response) throws ServletException, IOException {
+        // TODO Auto-generated method stub
+        doGet(request, response);
+    }
+
+}
